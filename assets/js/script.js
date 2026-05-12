@@ -17,6 +17,7 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const MOBILE_BREAKPOINT = "(max-width: 640px)";
+  const SLIDE_TRANSITION_MS = 450;
 
   // -----------------------------------------------------------------
   // Smooth anchors
@@ -61,6 +62,7 @@
     let maxIndex = 0;
     let slideStep = 0;
     let mobileBuilt = false;
+    let isAnimating = false;
 
     const getStageData = (item) => {
       const num = item.querySelector("b")?.textContent?.trim() || "";
@@ -147,15 +149,20 @@
       update();
     };
 
-    prevBtn.addEventListener("click", () => {
-      index = clamp(index - 1, 0, maxIndex);
+    const go = (delta) => {
+      if (isAnimating) return;
+      const next = clamp(index + delta, 0, maxIndex);
+      if (next === index) return;
+      isAnimating = true;
+      index = next;
       update();
-    });
+      setTimeout(() => {
+        isAnimating = false;
+      }, SLIDE_TRANSITION_MS);
+    };
 
-    nextBtn.addEventListener("click", () => {
-      index = clamp(index + 1, 0, maxIndex);
-      update();
-    });
+    prevBtn.addEventListener("click", () => go(-1));
+    nextBtn.addEventListener("click", () => go(1));
 
     window.addEventListener("resize", debounce(recalc, 150));
     recalc();
@@ -184,6 +191,7 @@
     let totalPages = 1;
     let step = 0;
     let timer = null;
+    let isAnimating = false;
 
     const setCounter = () => {
       const shown = Math.min((page + 1) * perView, slides.length);
@@ -199,9 +207,17 @@
       setCounter();
     };
 
-    const move = (delta) => {
-      page = clamp(page + delta, 0, totalPages - 1);
+    const move = (delta, userInitiated = false) => {
+      if (isAnimating) return;
+      const next = clamp(page + delta, 0, totalPages - 1);
+      if (next === page) return;
+      isAnimating = true;
+      page = next;
       update(true);
+      setTimeout(() => {
+        isAnimating = false;
+      }, SLIDE_TRANSITION_MS);
+      if (userInitiated) startAutoplay();
     };
 
     const recalc = () => {
@@ -234,8 +250,8 @@
       }
     };
 
-    prevBtn.addEventListener("click", () => move(-1));
-    nextBtn.addEventListener("click", () => move(1));
+    prevBtn.addEventListener("click", () => move(-1, true));
+    nextBtn.addEventListener("click", () => move(1, true));
 
     root.addEventListener("mouseenter", stopAutoplay);
     root.addEventListener("mouseleave", startAutoplay);
